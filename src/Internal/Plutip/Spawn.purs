@@ -130,9 +130,9 @@ onSignal sig = onSignalImpl (Signal.toString sig)
 cleanupOnSigint :: FilePath -> FilePath -> Effect OnSignalRef
 cleanupOnSigint workingDir testClusterDir = do
   sig <- onSignal SIGINT do
-    log $ "cleanup on sigint: " <> workingDir <> " & " <> testClusterDir
-    -- _rmdirSync workingDir
-    -- _rmdirSync testClusterDir
+    -- log $ "cleanup on sigint: " <> workingDir <> " & " <> testClusterDir
+    _rmdirSync workingDir
+    _rmdirSync testClusterDir
   pure sig
 
 cleanupTmpDir :: ManagedProcess -> FilePath -> Effect Unit
