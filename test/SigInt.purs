@@ -21,17 +21,12 @@ main :: Effect Unit
 main = launchAff_ $
   interpretWithConfig
     defaultConfig { timeout = Just $ wrap 600_000.0, exit = true }
-    suitePrtip
+    suite
 
-suitePrtip :: TestPlanM (Aff Unit) Unit
-suitePrtip =
+suite :: TestPlanM (Aff Unit) Unit
+suite =
   test
     "interruption test" $ do
-    -- let
-    --   testActionInfr = do
-    --     log "press CTRL + C"
-    --     liftAff $ delay (Milliseconds (10000.0 :: Number))
-    --     log "test end"
     withPlutipContractEnv ctcPlutipConfig testDistribution
       \env wallet -> do
         do
