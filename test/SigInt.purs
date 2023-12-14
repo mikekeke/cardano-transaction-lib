@@ -24,7 +24,7 @@ main = launchAff_ $
     suite
 
 suite :: TestPlanM (Aff Unit) Unit
-suite =
+suite = do
   test
     "interruption test" $ do
     withPlutipContractEnv ctcPlutipConfig testDistribution
@@ -42,6 +42,13 @@ suite =
             logInfo' $ "utxos2: " <> show utxos2
 
             logInfo' "test end"
+  test
+    "interruption test -2" $ do
+    withPlutipContractEnv ctcPlutipConfig testDistribution
+      \env wallet -> do
+        do
+          runContractInEnv env $ withKeyWallet wallet do
+            logInfo' "second test"
 
 testDistribution :: InitialUTxOs
 testDistribution =
