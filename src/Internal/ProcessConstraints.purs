@@ -134,6 +134,7 @@ import Ctl.Internal.Transaction
   , attachPlutusScript
   , setScriptDataHash
   )
+import Ctl.Internal.Types.BigNum (fromBigInt) as BigNum
 import Ctl.Internal.Types.Datum (DataHash, Datum)
 import Ctl.Internal.Types.Interval
   ( POSIXTimeRange
@@ -625,13 +626,13 @@ processConstraint mpsMap osMap c = do
       -- https://github.com/Plutonomicon/cardano-transaction-lib/issues/1156
       mintVal <-
         if i < zero then do
-          v <- liftM (CannotMakeValue cs tn i) (value $ negate i)
+          v <- liftM (CannotMakeValue cs tn (show i)) (value $ negate i)
           _valueSpentBalancesInputs <>= provideValue v
           pure $ map getNonAdaAsset $ value i
         else if i == zero then do
           throwError $ CannotMintZero cs tn
         else do
-          v <- liftM (CannotMakeValue cs tn i) (value i)
+          v <- liftM (CannotMakeValue cs tn (show i)) (value i)
           _valueSpentBalancesOutputs <>= provideValue v
           pure $ map getNonAdaAsset $ value i
       _redeemers <>=
@@ -652,11 +653,11 @@ processConstraint mpsMap osMap c = do
       -- created which must be added to 'valueSpentBalancesOutputs'.
       mintVal <-
         if i < zero then do
-          v <- liftM (CannotMakeValue cs tn i) (value $ negate i)
+          v <- liftM (CannotMakeValue cs tn (show i)) (value $ negate i)
           _valueSpentBalancesInputs <>= provideValue v
           pure $ map getNonAdaAsset $ value i
         else do
-          v <- liftM (CannotMakeValue cs tn i) (value i)
+          v <- liftM (CannotMakeValue cs tn (show i)) (value i)
           _valueSpentBalancesOutputs <>= provideValue v
           pure $ map getNonAdaAsset $ value i
 

@@ -37,6 +37,7 @@ import Ctl.Internal.Serialization.Hash (ScriptHash, scriptHashToBech32Unsafe)
 import Ctl.Internal.ToData (class ToData)
 import Ctl.Internal.Types.Aliases (Bech32String)
 import Ctl.Internal.Types.ByteArray (ByteArray)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Either (Either(Left))
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap)
@@ -148,6 +149,10 @@ newtype NativeScriptStakeValidator = NativeScriptStakeValidator NativeScript
 derive instance Newtype NativeScriptStakeValidator _
 derive instance Generic NativeScriptStakeValidator _
 derive instance Eq NativeScriptStakeValidator
+derive newtype instance EncodeAeson NativeScriptStakeValidator
+
+instance EncodeJson NativeScriptStakeValidator where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance Show NativeScriptStakeValidator where
   show = genericShow
@@ -166,6 +171,9 @@ instance DecodeAeson PlutusScriptStakeValidator where
 instance EncodeAeson PlutusScriptStakeValidator where
   encodeAeson (PlutusScriptStakeValidator script) =
     encodeAeson { "getStakeValidator": script }
+
+instance EncodeJson PlutusScriptStakeValidator where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance Show PlutusScriptStakeValidator where
   show = genericShow
@@ -191,6 +199,9 @@ instance EncodeAeson MintingPolicyHash where
   encodeAeson (MintingPolicyHash hash) =
     encodeAeson { "getMintingPolicyHash": hash }
 
+instance EncodeJson MintingPolicyHash where
+  encodeJson a = toStringifiedNumbersJson  $ encodeAeson a
+
 instance Show MintingPolicyHash where
   show = genericShow
 
@@ -206,6 +217,8 @@ derive newtype instance FromMetadata ValidatorHash
 derive newtype instance ToMetadata ValidatorHash
 derive newtype instance EncodeAeson ValidatorHash
 derive newtype instance DecodeAeson ValidatorHash
+derive newtype instance EncodeJson ValidatorHash
+
 
 instance Show ValidatorHash where
   show = genericShow

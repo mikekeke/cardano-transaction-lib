@@ -23,6 +23,7 @@ import Aeson
   , JsonDecodeError(TypeMismatch)
   , caseAesonString
   , encodeAeson
+  , toStringifiedNumbersJson
   )
 import Ctl.Internal.FfiHelpers (MaybeFfiHelper, maybeFfiHelper)
 import Ctl.Internal.FromData (class FromData)
@@ -40,6 +41,7 @@ import Ctl.Internal.Types.ByteArray
 import Ctl.Internal.Types.PlutusData (PlutusData(Bytes))
 import Ctl.Internal.Types.RawBytes (RawBytes, rawBytesToHex)
 import Ctl.Internal.Types.TransactionMetadata (TransactionMetadatum(Bytes)) as Metadata
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Either (Either(Left, Right), note)
 import Data.Function (on)
 import Data.Maybe (Maybe(Nothing, Just), fromJust, maybe)
@@ -190,6 +192,9 @@ instance DecodeAeson ScriptHash where
 
 instance EncodeAeson ScriptHash where
   encodeAeson sh = encodeAeson $ scriptHashToBytes sh
+
+instance EncodeJson ScriptHash where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 _ed25519KeyHashToBech32Impl
   ∷ MaybeFfiHelper → String → Ed25519KeyHash → Maybe Bech32String

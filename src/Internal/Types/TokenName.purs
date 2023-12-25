@@ -18,6 +18,7 @@ import Aeson
   , caseAesonObject
   , encodeAeson
   , getField
+  , toStringifiedNumbersJson
   )
 import Contract.Prim.ByteArray (hexToByteArray)
 import Ctl.Internal.FromData (class FromData)
@@ -27,6 +28,7 @@ import Ctl.Internal.Serialization.Types (AssetName) as CSL
 import Ctl.Internal.ToData (class ToData)
 import Ctl.Internal.Types.ByteArray (ByteArray, byteArrayToHex, byteLength)
 import Ctl.Internal.Types.RawBytes (RawBytes(RawBytes))
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.ArrayBuffer.Types (Uint8Array)
 import Data.BigInt (BigInt)
 import Data.Bitraversable (ltraverse)
@@ -91,6 +93,9 @@ instance EncodeAeson TokenName where
         "\x0" -> "\x0\x0" <> s
         _ -> s
     )
+
+instance EncodeJson TokenName where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance Show TokenName where
   show (TokenName tn) = "(TokenName " <> show tn <> ")"

@@ -22,6 +22,7 @@ import Ctl.Internal.Service.Helpers (aesonObject)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
+import Aeson (class EncodeAeson, encodeAeson)
 
 --------------------------------------------------------------------------------
 -- ClientError
@@ -74,6 +75,11 @@ instance Show ClientError where
     "(ClientOtherError "
       <> err
       <> ")"
+
+-- todo (JSON errors): placeholder implementation via `show` to make clarity-offchain compile
+instance EncodeAeson ClientError where
+  encodeAeson e = encodeAeson
+    { tag: "ClientError", values: [ show e ] }
 
 --------------------------------------------------------------------------------
 -- ServiceError

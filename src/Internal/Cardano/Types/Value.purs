@@ -67,6 +67,7 @@ import Aeson
   , caseAesonObject
   , encodeAeson
   , getField
+  , toStringifiedNumbersJson
   )
 import Control.Alt ((<|>))
 import Control.Alternative (guard)
@@ -97,6 +98,7 @@ import Ctl.Internal.Types.TokenName
   , mkTokenName
   , mkTokenNames
   )
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Array (cons, filter)
 import Data.Array (fromFoldable) as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -244,6 +246,9 @@ instance Arbitrary CurrencySymbol where
 
 instance Show CurrencySymbol where
   show (CurrencySymbol cs) = "(CurrencySymbol " <> show cs <> ")"
+
+instance EncodeJson CurrencySymbol where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 -- This is needed for `ApplyArgs`. Plutus has an `unCurrencySymbol` field.
 instance DecodeAeson CurrencySymbol where

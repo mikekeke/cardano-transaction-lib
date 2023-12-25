@@ -8,7 +8,12 @@ module Ctl.Internal.Types.Transaction
 
 import Prelude
 
-import Aeson (class DecodeAeson, class EncodeAeson)
+import Aeson
+  ( class DecodeAeson
+  , class EncodeAeson
+  , encodeAeson
+  , toStringifiedNumbersJson
+  )
 import Ctl.Internal.FromData (class FromData, fromData)
 import Ctl.Internal.ToData (class ToData, toData)
 import Ctl.Internal.Types.BigNum (zero) as BigNum
@@ -18,6 +23,7 @@ import Ctl.Internal.Types.ByteArray
   , byteArrayToHex
   )
 import Ctl.Internal.Types.PlutusData (PlutusData(Constr))
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(Nothing))
 import Data.Newtype (class Newtype, wrap)
@@ -40,6 +46,9 @@ derive instance Generic TransactionInput _
 derive newtype instance Eq TransactionInput
 derive newtype instance EncodeAeson TransactionInput
 derive newtype instance DecodeAeson TransactionInput
+
+instance EncodeJson TransactionInput where
+  encodeJson a = toStringifiedNumbersJson  $ encodeAeson a
 
 -- Potential fix me: the below is based on a small sample of smart contract
 -- transactions, so fix this as required.
@@ -118,6 +127,9 @@ derive newtype instance Ord DataHash
 derive newtype instance ToData DataHash
 derive newtype instance DecodeAeson DataHash
 derive newtype instance EncodeAeson DataHash
+
+instance EncodeJson DataHash where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance Show DataHash where
   show = genericShow

@@ -11,7 +11,12 @@ module Ctl.Internal.Plutus.Types.Transaction
 
 import Prelude
 
-import Aeson (class DecodeAeson, class EncodeAeson)
+import Aeson
+  ( class DecodeAeson
+  , class EncodeAeson
+  , encodeAeson
+  , toStringifiedNumbersJson
+  )
 import Ctl.Internal.Cardano.Types.ScriptRef (ScriptRef)
 import Ctl.Internal.Cardano.Types.Value (pprintValue)
 import Ctl.Internal.FromData (class FromData, fromData)
@@ -25,6 +30,7 @@ import Ctl.Internal.Types.OutputDatum (OutputDatum, pprintOutputDatum)
 import Ctl.Internal.Types.PlutusData (PlutusData(Constr))
 import Ctl.Internal.Types.RawBytes (rawBytesToHex)
 import Ctl.Internal.Types.Transaction (TransactionInput)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Generic.Rep (class Generic)
 import Data.Lens (Lens')
 import Data.Lens.Iso.Newtype (_Newtype)
@@ -60,6 +66,9 @@ instance Show TransactionOutput where
 
 derive newtype instance DecodeAeson TransactionOutput
 derive newtype instance EncodeAeson TransactionOutput
+
+instance EncodeJson TransactionOutput where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance FromData TransactionOutput where
   fromData (Constr n [ addr, amt, datum, referenceScript ])

@@ -19,6 +19,7 @@ import Aeson
   , class EncodeAeson
   , decodeAeson
   , encodeAeson
+  , toStringifiedNumbersJson
   , (.:)
   )
 import Ctl.Internal.FromData (class FromData)
@@ -39,6 +40,7 @@ import Ctl.Internal.Serialization.Address
   )
 import Ctl.Internal.Serialization.Hash (Ed25519KeyHash)
 import Ctl.Internal.ToData (class ToData)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Show.Generic (genericShow)
@@ -132,6 +134,17 @@ derive newtype instance Eq StakePubKeyHash
 derive newtype instance FromData StakePubKeyHash
 derive newtype instance Ord StakePubKeyHash
 derive newtype instance ToData StakePubKeyHash
+derive newtype instance EncodeAeson StakePubKeyHash
+-- todo (JSON errors): or this instance?
+-- instance EncodeAeson StakePubKeyHash where
+--   encodeAeson (StakePubKeyHash pkh) = encodeAeson
+--     { "unStakePubKeyHash": pkh }
+-- todo (JSON errors): or this instance?
+-- instance EncodeAeson StakePubKeyHash where
+--   encodeAeson = encodeAeson <<< unwrap
+
+instance EncodeJson StakePubKeyHash where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance Show StakePubKeyHash where
   show = genericShow

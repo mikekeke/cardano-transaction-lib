@@ -6,11 +6,18 @@ module Ctl.Internal.Types.Datum
 
 import Prelude
 
-import Aeson (class DecodeAeson, class EncodeAeson, decodeAeson, encodeAeson)
+import Aeson
+  ( class DecodeAeson
+  , class EncodeAeson
+  , decodeAeson
+  , encodeAeson
+  , toStringifiedNumbersJson
+  )
 import Ctl.Internal.FromData (class FromData)
 import Ctl.Internal.ToData (class ToData, toData)
 import Ctl.Internal.Types.PlutusData (PlutusData)
 import Ctl.Internal.Types.Transaction (DataHash(DataHash)) as X
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Show.Generic (genericShow)
@@ -31,6 +38,9 @@ derive newtype instance ToData Datum
 
 instance EncodeAeson Datum where
   encodeAeson = encodeAeson <<< unwrap
+
+instance EncodeJson Datum where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance DecodeAeson Datum where
   decodeAeson = map wrap <<< decodeAeson

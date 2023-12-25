@@ -10,16 +10,10 @@ module Ctl.Internal.Transaction
 
 import Prelude
 
+import Aeson (encodeAeson)
 import Control.Monad.Except.Trans (ExceptT, runExceptT)
 import Ctl.Internal.Cardano.Types.NativeScript (NativeScript)
-import Ctl.Internal.Cardano.Types.Transaction
-  ( Costmdls
-  , Redeemer
-  , ScriptDataHash(ScriptDataHash)
-  , Transaction(Transaction)
-  , TransactionWitnessSet(TransactionWitnessSet)
-  , TxBody(TxBody)
-  )
+import Ctl.Internal.Cardano.Types.Transaction (Costmdls, Redeemer, ScriptDataHash(ScriptDataHash), Transaction(Transaction), TransactionWitnessSet(TransactionWitnessSet), TxBody(TxBody))
 import Ctl.Internal.Deserialization.WitnessSet as Deserialization.WitnessSet
 import Ctl.Internal.Helpers (liftEither)
 import Ctl.Internal.Serialization (hashScriptData, toBytes)
@@ -29,6 +23,8 @@ import Ctl.Internal.Serialization.Types as Serialization
 import Ctl.Internal.Serialization.WitnessSet as Serialization.WitnessSet
 import Ctl.Internal.Types.Datum (Datum)
 import Ctl.Internal.Types.Scripts (PlutusScript)
+import Data.Argonaut (encodeJson)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Array as Array
 import Data.Either (Either(Right), note)
 import Data.Foldable (null)
@@ -46,6 +42,11 @@ data ModifyTxError
 
 derive instance Generic ModifyTxError _
 derive instance Eq ModifyTxError
+
+instance EncodeJson ModifyTxError where
+  -- todo (JSON errors): put back generic
+  encodeJson = encodeJson <<< show
+  -- encodeJson = genericEncodeJson
 
 instance Show ModifyTxError where
   show = genericShow

@@ -24,6 +24,7 @@ module Ctl.Internal.BalanceTx.Error
 
 import Prelude
 
+import Aeson (class EncodeAeson, encodeAeson)
 import Ctl.Internal.BalanceTx.RedeemerIndex (UnindexedRedeemer)
 import Ctl.Internal.Cardano.Types.Transaction
   ( Redeemer(Redeemer)
@@ -90,6 +91,11 @@ derive instance Generic BalanceTxError _
 
 instance Show BalanceTxError where
   show e = genericShow e
+
+-- todo (JSON errors): placeholder implementation via `explain...` to make clarity-offchain compile
+instance EncodeAeson BalanceTxError where
+  encodeAeson e = encodeAeson
+    { tag: "BalanceTxError", values: [ explainBalanceTxError e ] }
 
 explainBalanceTxError :: BalanceTxError -> String
 explainBalanceTxError = case _ of

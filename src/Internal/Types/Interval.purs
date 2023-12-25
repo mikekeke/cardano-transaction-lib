@@ -75,6 +75,7 @@ import Aeson
   , getField
   , isNull
   , partialFiniteNumber
+  , toStringifiedNumbersJson
   , (.:)
   )
 import Control.Monad.Error.Class (throwError)
@@ -114,6 +115,8 @@ import Ctl.Internal.Types.EraSummaries
   )
 import Ctl.Internal.Types.PlutusData (PlutusData(Constr))
 import Ctl.Internal.Types.SystemStart (SystemStart, sysStartUnixTime)
+import Data.Argonaut.Encode.Class (class EncodeJson)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Argonaut.Encode.Encoders (encodeString)
 import Data.Array (find, head, index, length)
 import Data.Bifunctor (bimap, lmap)
@@ -340,6 +343,9 @@ instance (FromData a, Ord a, Ring a) => FromData (Interval a) where
 
 instance (EncodeAeson a, Ord a, Semiring a) => EncodeAeson (Interval a) where
   encodeAeson = encodeAeson <<< intervalToHaskInterval
+
+instance (EncodeAeson a, Ord a, Semiring a) => EncodeJson (Interval a) where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance (DecodeAeson a, Ord a, Ring a) => DecodeAeson (Interval a) where
   decodeAeson a = do
@@ -895,6 +901,9 @@ instance EncodeAeson PosixTimeToSlotError where
       posixTimeToSlotErrorStr
       "endSlotLessThanSlotOrModNonZero"
       [ encodeAeson slot, encodeAeson modTime ]
+
+instance EncodeJson PosixTimeToSlotError where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 instance DecodeAeson PosixTimeToSlotError where
   decodeAeson = aesonObject $ \o -> do

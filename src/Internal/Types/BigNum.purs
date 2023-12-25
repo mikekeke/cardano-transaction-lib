@@ -19,11 +19,18 @@ module Ctl.Internal.Types.BigNum
 
 import Prelude
 
-import Aeson (class DecodeAeson, class EncodeAeson, decodeAeson, encodeAeson)
+import Aeson
+  ( class DecodeAeson
+  , class EncodeAeson
+  , decodeAeson
+  , encodeAeson
+  , toStringifiedNumbersJson
+  )
 import Aeson (JsonDecodeError(TypeMismatch)) as Aeson
 import Ctl.Internal.Deserialization.Error (FromCslRepError, fromCslRepError)
 import Ctl.Internal.Error (E, noteE)
 import Ctl.Internal.FfiHelpers (MaybeFfiHelper, maybeFfiHelper)
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.BigInt (BigInt)
 import Data.BigInt (fromString, toString) as BigInt
 import Data.Either (note)
@@ -56,6 +63,9 @@ instance DecodeAeson BigNum where
 
 instance EncodeAeson BigNum where
   encodeAeson = encodeAeson <<< toBigInt
+
+instance EncodeJson BigNum where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 -- Semiring cannot be implemented, because add and mul returns Maybe BigNum
 

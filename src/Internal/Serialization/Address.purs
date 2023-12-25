@@ -91,6 +91,7 @@ import Aeson
   , JsonDecodeError(TypeMismatch)
   , decodeAeson
   , encodeAeson
+  , toStringifiedNumbersJson
   )
 import Control.Alt ((<|>))
 import Ctl.Internal.FfiHelpers (MaybeFfiHelper, maybeFfiHelper)
@@ -104,6 +105,7 @@ import Ctl.Internal.Types.BigNum (BigNum)
 import Ctl.Internal.Types.ByteArray (ByteArray)
 import Ctl.Internal.Types.CborBytes (CborBytes)
 import Ctl.Internal.Types.PlutusData (PlutusData(Bytes))
+import Data.Argonaut.Encode.Class (class EncodeJson)
 import Data.Either (note)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
@@ -185,6 +187,9 @@ instance Show Address where
 
 instance EncodeAeson Address where
   encodeAeson = encodeAeson <<< addressBech32
+
+instance EncodeJson Address where
+  encodeJson a = toStringifiedNumbersJson $ encodeAeson a
 
 showVia
   :: forall (a :: Type) (b :: Type). Show b => String -> (a -> b) -> a -> String
