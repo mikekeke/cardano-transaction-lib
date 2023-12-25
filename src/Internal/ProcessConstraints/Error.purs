@@ -2,28 +2,40 @@ module Ctl.Internal.ProcessConstraints.Error where
 
 import Prelude
 
-import Aeson (class EncodeAeson, encodeAeson, jsonToAeson)
-import Contract.Prelude (Either)
+import Aeson (class EncodeAeson, encodeAeson)
 import Ctl.Internal.Cardano.Types.NativeScript (pprintNativeScript)
 import Ctl.Internal.Cardano.Types.Value (CurrencySymbol, getCurrencySymbol)
 import Ctl.Internal.Helpers (bugTrackerLink, unsafePprintTagSet)
-import Ctl.Internal.Plutus.Types.Transaction (TransactionOutput, pprintTransactionOutput)
+import Ctl.Internal.Plutus.Types.Transaction
+  ( TransactionOutput
+  , pprintTransactionOutput
+  )
 import Ctl.Internal.Serialization.Address (Address, addressBech32)
-import Ctl.Internal.Serialization.Hash (ScriptHash, ed25519KeyHashToBytes, scriptHashToBytes)
+import Ctl.Internal.Serialization.Hash
+  ( ScriptHash
+  , ed25519KeyHashToBytes
+  , scriptHashToBytes
+  )
 import Ctl.Internal.Transaction (ModifyTxError, explainModifyTxError)
-import Ctl.Internal.Types.BigNum (BigNum)
 import Ctl.Internal.Types.ByteArray (byteArrayToHex)
 import Ctl.Internal.Types.Datum (DataHash(DataHash), Datum)
-import Ctl.Internal.Types.Interval (POSIXTimeRange, PosixTimeToSlotError, explainPosixTimeToSlotError)
+import Ctl.Internal.Types.Interval
+  ( POSIXTimeRange
+  , PosixTimeToSlotError
+  , explainPosixTimeToSlotError
+  )
 import Ctl.Internal.Types.PubKeyHash (StakePubKeyHash)
 import Ctl.Internal.Types.RawBytes (rawBytesToHex)
-import Ctl.Internal.Types.Scripts (MintingPolicyHash, NativeScriptStakeValidator, PlutusScript(PlutusScript), PlutusScriptStakeValidator, ValidatorHash)
+import Ctl.Internal.Types.Scripts
+  ( MintingPolicyHash
+  , NativeScriptStakeValidator
+  , PlutusScript(PlutusScript)
+  , PlutusScriptStakeValidator
+  , ValidatorHash
+  )
 import Ctl.Internal.Types.TokenName (TokenName, fromTokenName)
 import Ctl.Internal.Types.Transaction (TransactionInput(TransactionInput))
-import Data.Argonaut.Encode.Class (class EncodeJson)
-
-import Data.BigInt (BigInt)
-import Data.Generic.Rep (class Generic, from)
+import Data.Generic.Rep (class Generic)
 import Data.Log.Tag (tagSetTag)
 import Data.Maybe (Maybe(Just, Nothing))
 import Data.Newtype (unwrap)
@@ -64,7 +76,8 @@ type TmpBigInt = String
 instance EncodeAeson MkUnbalancedTxError where
   -- todo (JSON errors): put back generic
   encodeAeson err = encodeAeson $ explainMkUnbalancedTxError err
-  -- encodeAeson err = jsonToAeson $ genericEncodeJson err
+
+-- encodeAeson err = jsonToAeson $ genericEncodeJson err
 
 instance Show MkUnbalancedTxError where
   show = genericShow

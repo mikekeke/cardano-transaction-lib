@@ -134,7 +134,8 @@ import Ctl.Internal.Transaction
   , attachPlutusScript
   , setScriptDataHash
   )
-import Ctl.Internal.Types.BigNum (fromBigInt) as BigNum
+-- todo (JSON errors): need to be fixed
+-- import Ctl.Internal.Types.BigNum (fromBigInt) as BigNum
 import Ctl.Internal.Types.Datum (DataHash, Datum)
 import Ctl.Internal.Types.Interval
   ( POSIXTimeRange
