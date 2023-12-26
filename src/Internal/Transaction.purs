@@ -29,8 +29,8 @@ import Ctl.Internal.Serialization.Types as Serialization
 import Ctl.Internal.Serialization.WitnessSet as Serialization.WitnessSet
 import Ctl.Internal.Types.Datum (Datum)
 import Ctl.Internal.Types.Scripts (PlutusScript)
-import Data.Argonaut (encodeJson)
 import Data.Argonaut.Encode.Class (class EncodeJson)
+import Data.Argonaut.Encode.Generic (genericEncodeJson)
 import Data.Array as Array
 import Data.Either (Either(Right), note)
 import Data.Foldable (null)
@@ -50,10 +50,7 @@ derive instance Generic ModifyTxError _
 derive instance Eq ModifyTxError
 
 instance EncodeJson ModifyTxError where
-  -- todo (JSON errors): put back generic
-  encodeJson = encodeJson <<< show
-
--- encodeJson = genericEncodeJson
+  encodeJson = genericEncodeJson
 
 instance Show ModifyTxError where
   show = genericShow

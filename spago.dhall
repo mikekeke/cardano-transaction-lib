@@ -11,6 +11,7 @@ You can edit this file as you like.
   , "affjax"
   , "argonaut"
   , "argonaut-codecs"
+  , "argonaut-generic"
   , "arraybuffer-types"
   , "arrays"
   , "avar"
