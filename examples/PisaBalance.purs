@@ -112,7 +112,7 @@ contract = do
     unbalancedTx
 
   case pisaBalancedTx of
-    Left e -> logError' $ "Failed to balance Tx with Pisa: " <> e
+    Left e -> logError' $ "Failed to balance Tx with Pisa: " <> show e
     Right txWithSwap -> do
       signed <- signTransaction txWithSwap
       tdId <- submit signed

@@ -1,12 +1,13 @@
 module Ctl.Internal.BalanceTx.PisaBalanceTx.Types
-  ( WsPath
-  , PisaBalanceArgs
-  , mkRequest
-  , UID
-  , SwapAsset(..)
+  ( BalancerResponse(..)
   , OutRef
+  , PisaBalanceArgs
+  , PisaBalancingError(..)
   , PisaRequest
-  , BalancerResponse(..)
+  , SwapAsset(..)
+  , UID
+  , mkRequest
+  , WsPath
   ) where
 
 import Contract.Prelude
@@ -29,9 +30,25 @@ import Contract.Monad (Contract)
 import Contract.Transaction (Transaction, TransactionInput(..))
 import Ctl.Internal.Service.Helpers (aesonObject)
 import Data.ByteArray (byteArrayToHex)
+import Data.Show.Generic (genericShow)
 import Data.UInt as UInt
 import Data.UUID (UUID)
 import Data.UUID as UUID
+
+data PisaBalancingError
+  = ResponseDoesNotMatchRequest
+      UID -- ^ request id
+      UID -- ^ response id
+  | BalancingFailed
+  | PisaBalancingMissingCollateral -- TODO: see collateral comment for `balanceTxWithPisa`
+  | FailedToPArseBalancedCbor String
+  | ProtocolMessageParsingError JsonDecodeError
+  | PlaceholderErr String
+
+derive instance Generic PisaBalancingError _
+
+instance Show PisaBalancingError where
+  show = genericShow
 
 type WsPath = String
 
@@ -110,6 +127,8 @@ instance EncodeAeson OutRef where
       (UInt.toInt index)
 
 newtype UID = UID UUID
+
+derive newtype instance Eq UID
 
 instance Show UID where
   show (UID uuid) = UUID.toString uuid

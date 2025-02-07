@@ -13,6 +13,7 @@ import Control.Monad.Error.Class (throwError)
 import Ctl.Internal.BalanceTx.PisaBalanceTx.Types
   ( BalancerResponse(..)
   , PisaBalanceArgs
+  , PisaBalancingError(..)
   , PisaRequest
   , WsPath
   , mkRequest
@@ -20,10 +21,9 @@ import Ctl.Internal.BalanceTx.PisaBalanceTx.Types
 import Ctl.Internal.BalanceTx.PisaBalanceTx.WebSocket (singleWsCall)
 import Ctl.Internal.Helpers (liftedM)
 import Data.Array as Array
+import Data.Bifunctor (bimap)
 import Data.ByteArray (hexToByteArray)
 import Effect.Exception (error)
-
-type PisaBalancingError = String
 
 -- TODO to think: (Pisa): Atlas IO handler accepts only single collateral or none
 -- TODO: collateral will become unspendable when provided to Atlas,
@@ -65,16 +65,20 @@ balanceTxWithPisa wsPath pisaArgs tx = do
 singlePisaBalanceWsCall
   :: String
   -> PisaRequest
-  -> Contract (Either String Transaction) -- TODO: better error type
+  -> Contract (Either PisaBalancingError Transaction)
 singlePisaBalanceWsCall wsUrl req = do
-  pisaResp <- singleWsCall wsUrl req
-  pure $ case pisaResp of
-    Right (BalanceSuccess res) -> parseTx res.balancedCbor
-    Right BalanceError -> Left "Pisa balance Error"
-    Right BalanceFailure -> Left "Pisa balance Failure"
+  resp <- bimap ProtocolMessageParsingError identity <$> singleWsCall wsUrl req
+  pure $ case resp of
+    Right (BalanceSuccess pisaResp) -> do
+      when (req.requestId /= pisaResp.requestId) $
+        Left (ResponseDoesNotMatchRequest req.requestId pisaResp.requestId)
+      parseTx pisaResp.balancedCbor
+    Right BalanceError -> Left $ PlaceholderErr "Pisa balance Error"
+    Right BalanceFailure -> Left $ PlaceholderErr "Pisa balance Failure"
     Left other -> Left other
 
   where
   parseTx cborHex =
-    note "Failed to parse Tx CBOR bytes" (CborBytes <$> hexToByteArray cborHex)
-      >>= (note "failed decode tx" <<< decodeCbor)
+    note (FailedToPArseBalancedCbor cborHex)
+      (CborBytes <$> hexToByteArray cborHex)
+      >>= (note (FailedToPArseBalancedCbor cborHex) <<< decodeCbor)

@@ -8,6 +8,7 @@ import Contract.Prelude
 import Aeson
   ( class DecodeAeson
   , class EncodeAeson
+  , JsonDecodeError
   , decodeAeson
   , encodeAeson
   , parseJsonStringToAeson
@@ -24,7 +25,6 @@ import Ctl.Internal.JsWebSocket
   , _wsFinalize
   , _wsSend
   )
-import Data.Bifunctor (bimap)
 import Effect.Aff (Canceler(Canceler), makeAff)
 import Effect.Exception (Error)
 
@@ -34,12 +34,12 @@ singleWsCall
   => DecodeAeson b
   => String
   -> a
-  -> Contract (Either String b) -- TODO: better error type
+  -> Contract (Either JsonDecodeError b) -- TODO: better error type
 singleWsCall wsUrl req = do
   rawResp <- singleWsCall' wsUrl (stringifyAeson $ encodeAeson req)
   let
     resp = parseJsonStringToAeson rawResp >>= decodeAeson
-  pure $ bimap show identity resp
+  pure resp
 
 singleWsCall' :: String -> String -> Contract String
 singleWsCall' wsUrl msg = liftAff $ sendSingleWsCallAff wsUrl msg
