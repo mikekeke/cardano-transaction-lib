@@ -3,27 +3,27 @@ module Internal.BalanceTx.PisaBalanceTx
   ) where
 
 import Contract.Prelude
+import Prelude
 
 import Cardano.AsCbor (decodeCbor)
 import Cardano.Types (CborBytes(..))
-import Contract.Monad (Contract)
-import Contract.Transaction (Transaction)
+import Contract.Monad (Contract, liftedE)
+import Contract.Transaction (Transaction, TransactionInput(..))
 import Contract.Wallet as Wallet
-import Control.Monad.Error.Class (throwError)
+import Control.Monad.Cont.Trans (lift)
+import Control.Monad.Except (ExceptT(..), runExceptT)
+import Ctl.Internal.BalanceTx.PisaBalanceTx.Errors (PisaBalancingError(..))
 import Ctl.Internal.BalanceTx.PisaBalanceTx.Types
   ( BalancerResponse(..)
   , PisaBalanceArgs
-  , PisaBalancingError(..)
   , PisaRequest
   , WsPath
   , mkRequest
   )
 import Ctl.Internal.BalanceTx.PisaBalanceTx.WebSocket (singleWsCall)
-import Ctl.Internal.Helpers (liftedM)
 import Data.Array as Array
 import Data.Bifunctor (bimap)
 import Data.ByteArray (hexToByteArray)
-import Effect.Exception (error)
 
 -- TODO to think: (Pisa): Atlas IO handler accepts only single collateral or none
 -- TODO: collateral will become unspendable when provided to Atlas,
@@ -38,47 +38,47 @@ balanceTxWithPisa
   -> Contract (Either PisaBalancingError Transaction)
 balanceTxWithPisa wsPath pisaArgs tx = do
   changeAddress <- Wallet.getChangeAddress
-  collateral <- getCollateral
   addresses <- Wallet.getWalletAddresses
 
-  pisaRequest <-
-    mkRequest
-      pisaArgs
-      tx
-      addresses
-      changeAddress
-      collateral
+  runExceptT do
+    collateral <- ExceptT $
+      note PisaBalancingMissingCollateral <$> getCollateral
 
-  ethTx <- singlePisaBalanceWsCall wsPath pisaRequest
-  pure ethTx
+    pisaRequest <- lift $
+      mkRequest
+        pisaArgs
+        tx
+        addresses
+        changeAddress
+        collateral
+
+    ExceptT $ singlePisaBalanceWsCall wsPath pisaRequest
   where
 
-  getCollateral = do
-    let
-      noCollateralError =
-        error "Collateral is required for Pisa balancing" -- TODO: make type for Pisa balancing errors
-    collaterals <- liftedM noCollateralError Wallet.getWalletCollateral
-    case Array.uncons collaterals of
-      Just { head: txIn, tail: _ } -> pure $ (unwrap txIn).input
-      Nothing -> throwError noCollateralError
+  getCollateral :: Contract (Maybe TransactionInput)
+  getCollateral =
+    Wallet.getWalletCollateral >>= \mc -> pure $ mc >>= \collaterals ->
+      case Array.uncons collaterals of
+        Just { head: txIn, tail: _ } -> Just (unwrap txIn).input
+        Nothing -> Nothing
 
 singlePisaBalanceWsCall
   :: String
   -> PisaRequest
   -> Contract (Either PisaBalancingError Transaction)
 singlePisaBalanceWsCall wsUrl req = do
-  resp <- bimap ProtocolMessageParsingError identity <$> singleWsCall wsUrl req
+  resp <- bimap PisaResponseParsingError identity <$> singleWsCall wsUrl req
   pure $ case resp of
     Right (BalanceSuccess pisaResp) -> do
       when (req.requestId /= pisaResp.requestId) $
         Left (ResponseDoesNotMatchRequest req.requestId pisaResp.requestId)
       parseTx pisaResp.balancedCbor
-    Right BalanceError -> Left $ PlaceholderErr "Pisa balance Error"
-    Right BalanceFailure -> Left $ PlaceholderErr "Pisa balance Failure"
-    Left other -> Left other
+    Right fail@(RequestFail _) -> Left $ PisaBackendError fail
+    Right err@(PisaServiceError _) -> Left $ PisaBackendError err
+    Left otherErr -> Left otherErr
 
   where
   parseTx cborHex =
-    note (FailedToPArseBalancedCbor cborHex)
+    note (FailedToParseBalancedCbor cborHex)
       (CborBytes <$> hexToByteArray cborHex)
-      >>= (note (FailedToPArseBalancedCbor cborHex) <<< decodeCbor)
+      >>= (note (FailedToParseBalancedCbor cborHex) <<< decodeCbor)

@@ -2,9 +2,10 @@ module Ctl.Internal.BalanceTx.PisaBalanceTx.Types
   ( BalancerResponse(..)
   , OutRef
   , PisaBalanceArgs
-  , PisaBalancingError(..)
+
   , PisaRequest
   , SwapAsset(..)
+  , PisaFailure(..)
   , UID
   , mkRequest
   , WsPath
@@ -28,27 +29,13 @@ import Cardano.Types.AssetName (unAssetName)
 import Contract.Address (Address)
 import Contract.Monad (Contract)
 import Contract.Transaction (Transaction, TransactionInput(..))
+import Control.Alt ((<|>))
 import Ctl.Internal.Service.Helpers (aesonObject)
 import Data.ByteArray (byteArrayToHex)
 import Data.Show.Generic (genericShow)
 import Data.UInt as UInt
 import Data.UUID (UUID)
 import Data.UUID as UUID
-
-data PisaBalancingError
-  = ResponseDoesNotMatchRequest
-      UID -- ^ request id
-      UID -- ^ response id
-  | BalancingFailed
-  | PisaBalancingMissingCollateral -- TODO: see collateral comment for `balanceTxWithPisa`
-  | FailedToPArseBalancedCbor String
-  | ProtocolMessageParsingError JsonDecodeError
-  | PlaceholderErr String
-
-derive instance Generic PisaBalancingError _
-
-instance Show PisaBalancingError where
-  show = genericShow
 
 type WsPath = String
 
@@ -93,17 +80,31 @@ mkRequest pArgs tx userAddresses userChangeAddress userCollateral = do
         }
     }
 
--- TODO: finish it
--- https://github.com/mlabs-haskell/pisa-fees?tab=readme-ov-file#balancing-via-web-socket---messages-examples
-
 data BalancerResponse
   = BalanceSuccess
       { balancedCbor :: String
       , requestId :: UID
 
       }
-  | BalanceError
-  | BalanceFailure
+  | RequestFail PisaFailure
+  | PisaServiceError
+      { error :: String
+      , requestId :: UID
+      }
+
+derive instance Generic BalancerResponse _
+
+instance Show BalancerResponse where
+  show = genericShow
+
+data PisaFailure
+  = UnknownRequest { error :: String, failedRequest :: String }
+  | BalancingFailed { error :: String, requestId :: UID }
+
+derive instance Generic PisaFailure _
+
+instance Show PisaFailure where
+  show = genericShow
 
 -- *** Serialization
 
@@ -112,12 +113,31 @@ instance DecodeAeson BalancerResponse where
     status <- getField obj "status"
     (respData :: Aeson) <- getField obj "data"
     case status of
-      "success" -> BalanceSuccess <$> (decodeAeson respData)
-      "error" -> pure BalanceError
-      "fail" -> pure BalanceFailure
+      "success" -> parseSuccess respData
+      "fail" -> RequestFail <$> parseFail respData
+      "error" -> parseError respData
       unknown -> Left $ TypeMismatch
         $ "Unknown status while parsing BalancerResponse: "
         <> unknown
+
+    where
+    parseSuccess respData = BalanceSuccess <$> (decodeAeson respData)
+
+    parseError respData = PisaServiceError <$> (decodeAeson respData)
+
+    parseFail :: Aeson -> Either JsonDecodeError PisaFailure
+    parseFail respData = do
+      let
+        unknownRequest :: Aeson -> Either JsonDecodeError PisaFailure
+        unknownRequest a = do
+          (_ :: String) <- aesonObject (flip getField "failedRequest") a
+          ((UnknownRequest) <$> decodeAeson a)
+
+        failedBalancing a = do
+          (_ :: UID) <- aesonObject (flip getField "requestId") a
+          ((BalancingFailed) <$> decodeAeson a)
+
+      unknownRequest respData <|> failedBalancing respData
 
 newtype OutRef = OutRef TransactionInput
 

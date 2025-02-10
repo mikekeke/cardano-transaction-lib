@@ -5,7 +5,7 @@ module Ctl.Examples.PisaBalance
 
 import Contract.Prelude
 
-import Aeson (class DecodeAeson, decodeAeson, parseJsonStringToAeson)
+import Aeson (class DecodeAeson, JsonDecodeError, decodeAeson, parseJsonStringToAeson)
 import Cardano.Transaction.Builder (TransactionBuilderStep(..))
 import Cardano.Types (AssetName)
 import Cardano.Types.Asset (Asset(Asset))
@@ -13,28 +13,13 @@ import Cardano.Types.AssetName (mkAssetName)
 import Cardano.Types.BigNum as BigNum
 import Cardano.Types.TransactionOutput (TransactionOutput(..))
 import Cardano.Types.Value as CV
-import Contract.Config
-  ( MnemonicSource(..)
-  , StakeKeyPresence(..)
-  , WalletSpec(..)
-  , blockfrostPublicPreprodServerConfig
-  , defaultConfirmTxDelay
-  , mkBlockfrostBackendParams
-  )
+import Contract.Config (MnemonicSource(..), StakeKeyPresence(..), WalletSpec(..), blockfrostPublicPreprodServerConfig, defaultConfirmTxDelay, mkBlockfrostBackendParams)
 import Contract.Config as Contract.Config
-import Contract.Log (logError')
-import Contract.Monad
-  ( Contract
-  , liftContractM
-  , throwContractError
-  )
+import Contract.Log (logError', logInfo')
+import Contract.Monad (Contract, liftContractM, throwContractError)
 import Contract.Monad as Contract.Monad
-import Contract.Transaction
-  ( awaitTxConfirmed
-  , buildTx
-  , signTransaction
-  , submit
-  )
+import Contract.Transaction (awaitTxConfirmed, buildTx, signTransaction, submit)
+import Ctl.Internal.BalanceTx.PisaBalanceTx.Types (BalancerResponse)
 import Data.ByteArray (byteArrayFromAscii)
 import Internal.BalanceTx.PisaBalanceTx (balanceTxWithPisa)
 import Node.Encoding as Encoding
@@ -80,10 +65,31 @@ userAddrAcc1 =
 
 pisaRefStr :: String
 pisaRefStr =
-  "{\"index\":1,\"transactionId\":\"4d1e7a08c598eeabcf34521a29f9604186c22408bdb4695589a2ee43a6ca52ec\"}"
+  "{\"index\":1,\"transactionId\":\"2df720d59262313ab7d0bdb721adf6958fd20e24db86d9eb27f55f495a98dd64\"}"
+
+fail1 =
+  "{\"status\": \"fail\",\"data\": {\"error\": \"Some error while parsing request\",\"failedRequest\": \"Raw string representation of received request\"}}"
+
+fail2 = "{\"status\": \"fail\",\"data\": {\"error\": \"Some error happened during balancing\",\"requestId\": \"6fb8473d-807c-40b6-b4ca-478664b96ef4\"}}"
+
+
+error1 = "{\"status\": \"error\",\"data\": {\"error\": \"Internal server error\",\"requestId\": \"6fb8473d-807c-40b6-b4ca-478664b96ef4\"}}"
 
 contract :: Contract Unit
 contract = do
+  (fail1Parsed :: JE BalancerResponse) <- fromJsonE "fail1" fail1
+  logInfo' $ "fail1: " <> show fail1Parsed
+
+  (fail2Parsed :: JE BalancerResponse) <- fromJsonE "fail2" fail2
+  logInfo' $ "fail2: " <> show fail2Parsed
+
+  (error1Parsed :: JE BalancerResponse) <- fromJsonE "error1" error1
+  logInfo' $ "error1: " <> show error1Parsed
+
+  -- _ <- throwContractError "done"
+
+
+
   pisaRef <- fromJson "Pisa position ref" pisaRefStr
 
   addr <- fromJson "bech32 address" userAddrAcc1
@@ -92,7 +98,7 @@ contract = do
     "\"1b650ba85f6590eebebe138cce94d96c62fcc332bbcfb3d9b3a11f33\""
   tokName <- mkAssetNameC "SwapTokenOne"
   let
-    testValueToSend = CV.singleton currSymbol tokName (BigNum.fromInt 11)
+    testValueToSend = CV.singleton currSymbol tokName (BigNum.fromInt 12)
     paramsSwapAsset = Asset currSymbol tokName
 
   unbalancedTx <- buildTx
@@ -115,8 +121,9 @@ contract = do
     Left e -> logError' $ "Failed to balance Tx with Pisa: " <> show e
     Right txWithSwap -> do
       signed <- signTransaction txWithSwap
-      tdId <- submit signed
-      awaitTxConfirmed tdId
+      logInfo' $ "Signed OK"
+      -- tdId <- submit signed
+      -- awaitTxConfirmed tdId
 
 mkAssetNameC :: String -> Contract AssetName
 mkAssetNameC str =
@@ -132,3 +139,13 @@ fromJson what json =
     )
     pure
     (parseJsonStringToAeson json >>= decodeAeson)
+
+type JE a = Either JsonDecodeError a
+fromJsonE
+  ∷ forall a
+   . DecodeAeson a
+  ⇒ String
+  → String
+  → Contract (Either JsonDecodeError a)
+fromJsonE what json =
+  pure (parseJsonStringToAeson json >>= decodeAeson)
