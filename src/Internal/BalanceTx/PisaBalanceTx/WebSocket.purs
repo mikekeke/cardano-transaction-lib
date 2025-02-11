@@ -28,19 +28,25 @@ import Ctl.Internal.JsWebSocket
 import Effect.Aff (Canceler(Canceler), makeAff)
 import Effect.Exception (Error)
 
+-- | Small wrapper around JS FFI WS calls.
+-- | Connects to websocket, sends request and awaits response.
+-- | Closes connection on error.
 singleWsCall
   :: forall a b
    . EncodeAeson a
   => DecodeAeson b
   => String
   -> a
-  -> Contract (Either JsonDecodeError b) -- TODO: better error type
+  -> Contract (Either JsonDecodeError b)
 singleWsCall wsUrl req = do
   rawResp <- singleWsCall' wsUrl (stringifyAeson $ encodeAeson req)
   let
     resp = parseJsonStringToAeson rawResp >>= decodeAeson
   pure resp
 
+-- | Small wrapper around JS FFI WS calls.
+-- | Connects to websocket, sends request and awaits response.
+-- | Closes connection on error.
 singleWsCall' :: String -> String -> Contract String
 singleWsCall' wsUrl msg = liftAff $ sendSingleWsCallAff wsUrl msg
 

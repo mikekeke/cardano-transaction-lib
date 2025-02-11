@@ -58,6 +58,8 @@ type PisaRequest =
       }
   }
 
+-- | Helper function to make `PisaRequest`. 
+-- | Generates UUID for request and sets proper request type.
 mkRequest
   :: PisaBalanceArgs
   -> Transaction

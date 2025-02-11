@@ -2,13 +2,13 @@ module Internal.BalanceTx.PisaBalanceTx
   ( balanceTxWithPisa
   ) where
 
-import Contract.Prelude
 import Prelude
 
 import Cardano.AsCbor (decodeCbor)
 import Cardano.Types (CborBytes(..))
-import Contract.Monad (Contract, liftedE)
-import Contract.Transaction (Transaction, TransactionInput(..))
+import Contract.Monad (Contract)
+import Contract.Prelude (Either(..), Maybe(..), note, unwrap)
+import Contract.Transaction (Transaction, TransactionInput)
 import Contract.Wallet as Wallet
 import Control.Monad.Cont.Trans (lift)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -31,6 +31,11 @@ import Data.ByteArray (hexToByteArray)
 -- But if no collateral provided and Atlas picks collateral by itself, input can be spent as well.
 -- Make collateral optional and supplied by the caller of balanceTxWithPisa?
 -- or make separate `balanceTxWithPisaWithCollateral`? or...
+
+-- | Balance unbalanced transaction using Pisa backed.
+-- | Currently each balancing call opens web socket to communicate to the Pisa backend server
+-- | and closes it when response is received.
+-- | Besides failing with IO error contract can return errors defined in `Ctl.Internal.BalanceTx.PisaBalanceTx.Errors`
 balanceTxWithPisa
   :: WsPath
   -> PisaBalanceArgs
@@ -62,6 +67,8 @@ balanceTxWithPisa wsPath pisaArgs tx = do
         Just { head: txIn, tail: _ } -> Just (unwrap txIn).input
         Nothing -> Nothing
 
+-- | Connects to Pisa Backend websocket, sends request and awaits response.
+-- | If response ID do not match request ID, returns `ResponseDoesNotMatchRequest` error.
 singlePisaBalanceWsCall
   :: String
   -> PisaRequest
@@ -76,7 +83,6 @@ singlePisaBalanceWsCall wsUrl req = do
     Right fail@(RequestFail _) -> Left $ PisaBackendError fail
     Right err@(PisaServiceError _) -> Left $ PisaBackendError err
     Left otherErr -> Left otherErr
-
   where
   parseTx cborHex =
     note (FailedToParseBalancedCbor cborHex)
