@@ -5,16 +5,29 @@ module Internal.BalanceTx.PisaBalanceTx
 import Prelude
 
 import Cardano.AsCbor (decodeCbor)
-import Cardano.Types (CborBytes(..))
+import Cardano.Types (CborBytes(CborBytes))
 import Contract.Monad (Contract)
-import Contract.Prelude (Either(..), Maybe(..), note, unwrap)
+import Contract.Prelude
+  ( Either(Left, Right)
+  , Maybe(Just, Nothing)
+  , note
+  , unwrap
+  )
 import Contract.Transaction (Transaction, TransactionInput)
 import Contract.Wallet as Wallet
 import Control.Monad.Cont.Trans (lift)
-import Control.Monad.Except (ExceptT(..), runExceptT)
-import Ctl.Internal.BalanceTx.PisaBalanceTx.Errors (PisaBalancingError(..))
+import Control.Monad.Except (ExceptT(ExceptT), runExceptT)
+import Ctl.Internal.BalanceTx.PisaBalanceTx.Errors
+  ( PisaBalancingError
+      ( FailedToParseBalancedCbor
+      , PisaBalancingMissingCollateral
+      , PisaResponseParsingError
+      , ResponseDoesNotMatchRequest
+      , PisaBackendError
+      )
+  )
 import Ctl.Internal.BalanceTx.PisaBalanceTx.Types
-  ( BalancerResponse(..)
+  ( BalancerResponse(BalanceSuccess, RequestFail, PisaServiceError)
   , PisaBalanceArgs
   , PisaRequest
   , WsPath

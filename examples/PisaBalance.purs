@@ -10,17 +10,17 @@ module Ctl.Examples.PisaBalance
 import Contract.Prelude
 
 import Aeson (decodeAeson, parseJsonStringToAeson)
-import Cardano.Transaction.Builder (TransactionBuilderStep(..))
+import Cardano.Transaction.Builder (TransactionBuilderStep(Pay))
 import Cardano.Types (Address, AssetName, ScriptHash, TransactionInput)
 import Cardano.Types.Asset (Asset(Asset))
 import Cardano.Types.AssetName (mkAssetName)
 import Cardano.Types.BigNum as BigNum
-import Cardano.Types.TransactionOutput (TransactionOutput(..))
+import Cardano.Types.TransactionOutput (TransactionOutput(TransactionOutput))
 import Cardano.Types.Value as CV
 import Contract.Config
-  ( MnemonicSource(..)
-  , StakeKeyPresence(..)
-  , WalletSpec(..)
+  ( MnemonicSource(MnemonicFile)
+  , StakeKeyPresence(WithStakeKey)
+  , WalletSpec(UseMnemonic)
   , blockfrostPublicPreprodServerConfig
   , defaultConfirmTxDelay
   , mkBlockfrostBackendParams

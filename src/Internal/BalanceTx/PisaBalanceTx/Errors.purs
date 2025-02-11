@@ -1,5 +1,12 @@
 module Ctl.Internal.BalanceTx.PisaBalanceTx.Errors
-  ( PisaBalancingError(..)
+  ( PisaBalancingError
+      ( ResponseDoesNotMatchRequest
+      , PisaBackendError
+      , PisaBalancingMissingCollateral
+      , FailedToParseBalancedCbor
+      , PisaResponseParsingError
+      , PlaceholderErr
+      )
   ) where
 
 import Contract.Prelude

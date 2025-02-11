@@ -1,11 +1,15 @@
 module Ctl.Internal.BalanceTx.PisaBalanceTx.Types
-  ( BalancerResponse(..)
+  ( BalancerResponse
+      ( BalanceSuccess
+      , RequestFail
+      , PisaServiceError
+      )
   , OutRef
   , PisaBalanceArgs
 
   , PisaRequest
-  , SwapAsset(..)
-  , PisaFailure(..)
+  , SwapAsset(SwapAsset)
+  , PisaFailure(UnknownRequest, BalancingFailed)
   , UID
   , mkRequest
   , WsPath
@@ -17,7 +21,7 @@ import Aeson
   ( class DecodeAeson
   , class EncodeAeson
   , Aeson
-  , JsonDecodeError(..)
+  , JsonDecodeError(TypeMismatch)
   , decodeAeson
   , getField
   )
@@ -28,7 +32,10 @@ import Cardano.Types.Asset (Asset(AdaAsset, Asset))
 import Cardano.Types.AssetName (unAssetName)
 import Contract.Address (Address)
 import Contract.Monad (Contract)
-import Contract.Transaction (Transaction, TransactionInput(..))
+import Contract.Transaction
+  ( Transaction
+  , TransactionInput(TransactionInput)
+  )
 import Control.Alt ((<|>))
 import Ctl.Internal.Service.Helpers (aesonObject)
 import Data.ByteArray (byteArrayToHex)
@@ -58,7 +65,7 @@ type PisaRequest =
       }
   }
 
--- | Helper function to make `PisaRequest`. 
+-- | Helper function to make `PisaRequest`.
 -- | Generates UUID for request and sets proper request type.
 mkRequest
   :: PisaBalanceArgs
