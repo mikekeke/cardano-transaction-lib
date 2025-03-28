@@ -53,7 +53,7 @@ import Node.Process (argv)
     "assetName": "SendTokenOne"
   },
   "testSwapConf": {
-    "pisaBackendWsPath": "http://localhost:8088/ws",
+    "pisaBackendWsPath": "wss://pisa-backend-url:port/ws",
     "positionRef": {
       "index": 1,
       "transactionId": "b5f831a0d8707c4d60f4cfbba6e51770970cbf325eb76a8d73762c33e42a462b"

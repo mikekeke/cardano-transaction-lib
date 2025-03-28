@@ -16,7 +16,7 @@ import Aeson
   )
 import Contract.Monad (Contract)
 import Ctl.Internal.Helpers (logString)
-import Ctl.Internal.JsWebSocket
+import Ctl.Internal.QueryM.Ogmios.Mempool.JsWebSocket
   ( _mkWebSocket
   , _onWsConnect
   , _onWsError
