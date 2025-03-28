@@ -2,9 +2,6 @@
 module Ctl.Examples.PisaBalance
   ( main
   , contract
-  , PisaExampleConf
-  , TestSendInfo
-  , TestSwapConf
   ) where
 
 import Contract.Prelude
@@ -44,20 +41,22 @@ import Node.Process (argv)
 -- *** Example config
 {-
 {
-  "blockfrostApiKey": "...",
-  "userMnemonicFile": "...",
-  "testSendInfo": {
+  "credentials": {
+    "blockfrostApiKey": "...",
+    "userMnemonicFile": "..."
+  },
+  "pisaBackendWsPath": "wss://pisa-backend-url:port/ws",
+  "positionRef": {
+    "index": 1,
+    "transactionId": "37891a33521af4889e896f44106b14e994dc3f7b04e7c6ffe119b633c962aa54"
+  },
+  "sendInfo": {
     "addressSendTo": "addr_test1qrehsphwfepck4zzaptegyeau5ujj2xp5cjx3r8hajrjhqr2saysw7z6pdux5647rlu2tjdrze4mftsagr5ca3gkf4lsg5rpgh",
-    "amountToSend": 12,
+    "amountToSend": 4,
     "assetPolicy": "1b650ba85f6590eebebe138cce94d96c62fcc332bbcfb3d9b3a11f33",
     "assetName": "SendTokenOne"
   },
-  "testSwapConf": {
-    "pisaBackendWsPath": "wss://pisa-backend-url:port/ws",
-    "positionRef": {
-      "index": 1,
-      "transactionId": "b5f831a0d8707c4d60f4cfbba6e51770970cbf325eb76a8d73762c33e42a462b"
-    },
+  "swapConf": {
     "assetPolicy": "1b650ba85f6590eebebe138cce94d96c62fcc332bbcfb3d9b3a11f33",
     "assetName": "SwapTokenOne"
   }
@@ -74,32 +73,46 @@ main = do
     exampleConf <- readTextFile Encoding.UTF8 configFilePath
     case parseJsonStringToAeson exampleConf >>= decodeAeson of
       Left e -> log $ "Failed to parse Pisa example config: " <> show e
-      Right conf -> void
-        $ Contract.Monad.runContract (contractParams conf)
-        $ contract conf
+      Right (conf :: PisaExampleConf) -> void
+        $ Contract.Monad.runContract (contractParams conf.credentials)
+        $ contract
+            conf.pisaBackendWsPath
+            conf.positionRef
+            (conf.swapConf.assetPolicy /\ conf.swapConf.assetName)
+            (conf.sendInfo.assetPolicy /\ conf.sendInfo.assetName)
+            conf.sendInfo.addressSendTo
+            conf.sendInfo.amountToSend
 
 -- | This contract uses CTL to build unbalanced transaction which then
 -- | balanced using Pisa Fees backend server.
 -- |
 -- | This contract is made for demo purposes and limited to sending some tokens from one
 -- | address to another using same or another token(s) to perform fee swap with Pisa script.
-contract :: PisaExampleConf -> Contract Unit
-contract conf = do
-  -- swap params
-  swapTokenName <- mkAssetNameC conf.testSwapConf.assetName
+-- contract :: PisaExampleConf -> Contract Unit
+contract
+  ∷ String
+  -> TransactionInput
+  -> (ScriptHash /\ String)
+  -> (ScriptHash /\ String)
+  -> Address
+  -> Int
+  -> Contract Unit
+contract
+  pisaWsPath
+  pisaPositionRef
+  (swapCurrSymbol /\ swapAssetName)
+  (sendCurrSymbol /\ sendAssetName)
+  addressSendTo
+  amountToSend = do
+  swapTokenName <- mkAssetNameC swapAssetName
   let
-    pisaWsPath = conf.testSwapConf.pisaBackendWsPath
-    pisaPositionRef = conf.testSwapConf.positionRef
-    swapCurrSymbol = conf.testSwapConf.assetPolicy
     paramsSwapAsset = Asset swapCurrSymbol swapTokenName
 
   -- send params
-  sendTokenName <- mkAssetNameC conf.testSendInfo.assetName
+  sendTokenName <- mkAssetNameC sendAssetName
   let
-    addressSendTo = conf.testSendInfo.addressSendTo
-    sendCurrSymbol = conf.testSendInfo.assetPolicy
     testValueToSend = CV.singleton sendCurrSymbol sendTokenName
-      (BigNum.fromInt conf.testSendInfo.amountToSend)
+      (BigNum.fromInt amountToSend)
 
   -- going Pisa
   unbalancedTx <- buildTx
@@ -126,16 +139,20 @@ contract conf = do
       awaitTxConfirmed tdId
 
 type PisaExampleConf =
+  { credentials :: Credentials
+  , pisaBackendWsPath :: String
+  , positionRef :: TransactionInput
+  , sendInfo :: TestSendInfo
+  , swapConf :: TestSwapConf
+  }
+
+type Credentials =
   { userMnemonicFile :: String
   , blockfrostApiKey :: String
-  , testSendInfo :: TestSendInfo
-  , testSwapConf :: TestSwapConf
   }
 
 type TestSwapConf =
-  { pisaBackendWsPath :: String
-  , positionRef :: TransactionInput
-  , assetPolicy :: ScriptHash
+  { assetPolicy :: ScriptHash
   , assetName :: String
   }
 
@@ -146,15 +163,15 @@ type TestSendInfo =
   , amountToSend :: Int
   }
 
-contractParams :: PisaExampleConf -> Contract.Config.ContractParams
-contractParams conf =
+contractParams :: Credentials -> Contract.Config.ContractParams
+contractParams credentials =
   let
     pisaPreprodWalletSpec = Just $ UseMnemonic
-      (MnemonicFile conf.userMnemonicFile)
+      (MnemonicFile credentials.userMnemonicFile)
       { accountIndex: zero, addressIndex: zero }
       WithStakeKey
     blockFrostParams = mkBlockfrostBackendParams $
-      { blockfrostApiKey: Just conf.blockfrostApiKey
+      { blockfrostApiKey: Just credentials.blockfrostApiKey
       , blockfrostConfig: blockfrostPublicPreprodServerConfig
       , confirmTxDelay: defaultConfirmTxDelay
       }
